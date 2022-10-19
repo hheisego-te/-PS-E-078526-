@@ -44,7 +44,7 @@ def dump_logs(d_logs):
 
 # Selenium
 options = Options()
-#options.add_argument('--headless')
+options.add_argument('--headless')
 driver = webdriver.Firefox(options=options) #executable_path="C:\\Users\\Helmut\\Desktop\\geckodriver.exe",
 #wait = WebDriverWait(driver, 7)
 action = ActionChains(driver)
