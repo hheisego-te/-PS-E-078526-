@@ -32,7 +32,7 @@ CERT += "-----END CERTIFICATE-----"
 # Date & Time
 def timestamp():
     date_time_now = datetime.now()
-    #dt_string = date_time_now.strftime("%m/%d/%H:%M:%S")
+  
     return date_time_now.strftime("%m/%d/%H:%M:%S")
 
 def dump_logs(d_logs):
@@ -46,7 +46,6 @@ def dump_logs(d_logs):
 options = Options()
 options.add_argument('--headless')
 driver = webdriver.Firefox(options=options) #executable_path="C:\\Users\\Helmut\\Desktop\\geckodriver.exe",
-#wait = WebDriverWait(driver, 7)
 action = ActionChains(driver)
 
 # Openpyxl
