@@ -52,9 +52,6 @@ action = ActionChains(driver)
 # Openpyxl
 config_file = openpyxl.load_workbook('config.xlsx')
 data_sheet = config_file["Config"]
-#logs_tab = "Logs("+ dt_string +")"
-#logs_sheet = config_file.create_sheet(logs_tab)
-#logs_sheet = config_file[logs_tab]
 
 # Progress Bar
 bar = Bar('Configuring ', max=(data_sheet.max_row - 1))
@@ -110,8 +107,6 @@ def initial_setup(host_ip, new_password, accgroup_token):
             time.sleep(0.77)
             driver.find_element(By.NAME, "confirmPassword").send_keys(new_password)
             time.sleep(3.33)
-            #change_password = WebDriverWait(driver, 17).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.btn:nth-child(5)")))
-            #change_password.click()
             driver.find_element(By.CSS_SELECTOR, "button.btn:nth-child(5)").submit()
             time.sleep(1.77)
 
@@ -119,7 +114,7 @@ def initial_setup(host_ip, new_password, accgroup_token):
 
         except(NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException) as ex:
             pass
-            #print(ex)
+           
             dump_logs(d_logs=ex)
 
             status += "\n" + timestamp() + "-> Could not Change Original Password"
