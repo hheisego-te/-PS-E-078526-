@@ -1,0 +1,327 @@
+import time
+import openpyxl
+from openpyxl.styles import Font, Alignment
+from progress.bar import Bar
+from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException, WebDriverException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+
+# Constants & Variables
+C_PWD = 'welcome'
+
+CERT = "-----BEGIN CERTIFICATE-----\n"
+CERT += "MIIByDCCAXKgAwIBAgIUFCd5ZkgUv33hkH3AnQO2T7DilB4wDQYJKoZIhvcNAQEL\n"
+CERT += "BQAwMDELMAkGA1UEBhMCTVgxEDAOBgNVBAgMB03DqXhpY28xDzANBgNVBAcMBlRv\n"
+CERT += "bHVjYTAeFw0yMjEwMTcyMjI2NTlaFw0yOTEwMTUyMjI2NTlaMDAxCzAJBgNVBAYT\n"
+CERT += "Ak1YMRAwDgYDVQQIDAdNw6l4aWNvMQ8wDQYDVQQHDAZUb2x1Y2EwXDANBgkqhkiG\n"
+CERT += "9w0BAQEFAANLADBIAkEAsNzCb60JcoW8gV2FiTkRwpwfL600TQvYl/Ilz2gg52x9\n"
+CERT += "Oy1MZEE2BZPdeYftkKkwGKXB6Dw9dvO4kCy9ePZl8wIDAQABo2QwYjAdBgNVHQ4E\n"
+CERT += "FgQUrCQGY41Jtvaq0xzpbfz6RRxas0cwHwYDVR0jBBgwFoAUrCQGY41Jtvaq0xzp\n"
+CERT += "bfz6RRxas0cwCwYDVR0PBAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMCMA0GCSqG\n"
+CERT += "SIb3DQEBCwUAA0EAo82qS/yJYTxNhKBMRavBKuDF3CsGqOSTIT5Bat3jbJuqaK0U\n"
+CERT += "xt8pD9zsf2kExB/Blfm4fuMAiNZgDHsfSgnXiw==\n"
+CERT += "-----END CERTIFICATE-----"
+
+
+# Date & Time
+def timestamp():
+    date_time_now = datetime.now()
+  
+    return date_time_now.strftime("%m/%d/%H:%M:%S")
+
+def dump_logs(d_logs):
+    d_logs = str(d_logs)
+    file_name = 'dump' + timestamp().replace('/', '_')[:8] + '.log'
+    f = open(file_name, 'a+')  # open file in append mode
+    f.write(d_logs)
+    f.close()
+
+# Selenium
+options = Options()
+#options.add_argument('--headless')
+servicio = Service("/Users/hheisego/Documents/1k-eyes/-PS-E-078526-/geckodriver")
+#executable_path =  "/Users/hheisego/Documents/1k-eyes/-PS-E-078526-/geckodriver"
+driver = webdriver.Firefox(options=options, service=servicio) #executable_path="C:\\Users\\Helmut\\Desktop\\geckodriver.exe",
+action = ActionChains(driver)
+
+# Openpyxl
+config_file = openpyxl.load_workbook('config.xlsx')
+data_sheet = config_file["Config"]
+
+# Progress Bar
+bar = Bar('Configuring ', max=(data_sheet.max_row - 1))
+
+def static_proxy_not_used(proxy, proxy_port, proxy_list):
+    # Proxy
+    driver.find_element(By.ID, "proxy-type-label-static").click()
+    time.sleep(0.77)
+    driver.find_element(By.NAME, "proxy-host").send_keys(proxy)
+    time.sleep(0.77)
+    driver.find_element(By.NAME, "proxy-port").send_keys(proxy_port)
+    time.sleep(0.77)
+    driver.save_screenshot("image2.png")
+    driver.find_element(By.ID, "bypass-list-input").send_keys(proxy_list)
+    time.sleep(0.77)
+    driver.find_element(By.CLASS_NAME, "input-group-append").click()
+    time.sleep(0.77)
+    #status += "\n" + timestamp() + "-> Proxy Setup Complete "
+
+def login(host_ip, password):
+
+    portal = 'https://' + host_ip
+    dump_logs(d_logs=portal)
+
+    try:
+        driver.set_page_load_timeout(11)
+        driver.get(portal)
+        time.sleep(1.77)
+        driver.find_element(By.NAME, 'username').send_keys('admin')
+        time.sleep(0.77)
+        driver.find_element(By.NAME, "password").send_keys(password)
+        time.sleep(0.77)
+        driver.find_element(By.CSS_SELECTOR, '.btn-outline-default').submit()
+        time.sleep(1.77)
+
+        return True
+
+    except TimeoutException as ex:
+
+        print(" Host not reachable: " + portal)
+        dump_logs(d_logs=ex)
+
+        return False
+
+    except(NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException, WebDriverException) as ex:
+        pass
+
+        step = "\nNetwork Conf " + portal
+        dump_logs(d_logs=step)
+        dump_logs(d_logs=ex)
+        return True
+
+
+def get_status(host_ip, hostname):
+
+    portal = ('https://' + host_ip + '/status')
+    portal = portal.strip(' ')
+    hostname = hostname + '.png'
+    driver.switch_to.new_window('tab')
+    tabs = driver.window_handles
+    time.sleep(0.77)
+    driver.switch_to.window(tabs[0])
+    time.sleep(0.77)
+    driver.close()
+    time.sleep(0.77)
+    driver.switch_to.window(tabs[1])
+    driver.get(portal)
+    time.sleep(1.77)
+    driver.execute_script("window.scrollTo(0, 277)")
+    time.sleep(1.77)
+
+    final_status = ''
+    for i in driver.find_elements(By.CLASS_NAME, "diagnostics-message"):
+        final_status += "\n" + i.text
+
+    driver.save_screenshot(hostname)
+
+    return final_status
+
+
+
+
+def initial_setup(host_ip, new_password, accgroup_token):
+
+    status = ''
+    logged = login(host_ip=host_ip, password='welcome')
+
+    if logged is True:
+
+        status += "\n" + timestamp() + "-> Enterprise Agent Reachable "
+
+        try:
+            time.sleep(1.77)
+            driver.find_element(By.NAME, "originalPassword").send_keys(C_PWD)
+            time.sleep(0.77)
+            driver.find_element(By.NAME, "newPassword").send_keys(new_password)
+            time.sleep(0.77)
+            driver.find_element(By.NAME, "confirmPassword").send_keys(new_password)
+            time.sleep(3.33)
+            #change_password = WebDriverWait(driver, 17).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.btn:nth-child(5)")))
+            #change_password.click()
+            driver.find_element(By.CSS_SELECTOR, "button.btn:nth-child(5)").submit()
+            time.sleep(1.77)
+
+            status += "\n" + timestamp() + "-> Original Password Has Changed Successfully "
+
+        except(NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException) as ex:
+            pass
+            #print(ex)
+            dump_logs(d_logs=ex)
+
+            status += "\n" + timestamp() + "-> Could not Change Original Password"
+
+        try:
+            time.sleep(2.22)
+            driver.find_element(By.NAME, "accountToken").send_keys(accgroup_token)
+            time.sleep(1.77)
+            next_button = WebDriverWait(driver, 7).until(EC.element_to_be_clickable((By.ID, "setupButtonNext")))
+            time.sleep(0.77)
+            next_button.click()
+            status += "\n" + timestamp() + "-> Account Group Token Changed Successfully "
+            time.sleep(1.77)##setupButtonNext
+
+        except(NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException) as ex:
+            pass
+            dump_logs(d_logs=ex)
+
+        return status
+
+    else:
+
+        status += "\n" + timestamp() + "-> Enterprise Agent not Reachable "
+
+        return status
+
+
+def network_setup(host_ip, hostname, new_password, ntp, proxy, proxy_port):
+
+    status = ''
+
+    try:
+
+        time.sleep(0.77)
+        driver.switch_to.new_window('tab')
+        tabs = driver.window_handles
+        time.sleep(0.77)
+        driver.switch_to.window(tabs[0])
+        time.sleep(0.77)
+        driver.close()
+        time.sleep(0.77)
+        driver.switch_to.window(tabs[1])
+        time.sleep(1.77)
+
+        logged = login(host_ip=host_ip, password=new_password)
+
+        if logged is True:
+
+            time.sleep(0.77)
+            driver.find_element(By.LINK_TEXT, "Time").click()
+            time.sleep(0.77)
+            driver.find_element(By.CSS_SELECTOR, 'div.form-group:nth-child(1) > div:nth-child(2) > input:nth-child(1)').clear()
+            time.sleep(0.77)
+            try:
+                driver.find_element(By.CSS_SELECTOR, 'div.form-group:nth-child(1) > div:nth-child(2) > input:nth-child(1)').send_keys(ntp)
+            except (NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException) as ex:
+                pass
+
+            time.sleep(0.77)
+            driver.find_element(By.ID, "submit-form").submit()
+            time.sleep(0.77)
+
+            #Hostname
+            time.sleep(1.77)
+            driver.find_element(By.LINK_TEXT, "Network").click()
+            time.sleep(1.77)
+
+            if hostname:
+                driver.find_element(By.ID, "hostname").clear()
+                time.sleep(0.77)
+                driver.find_element(By.ID, "hostname").send_keys(hostname)
+                time.sleep(0.77)
+                status += "\n" + timestamp() + "-> Hostname Changed "
+
+            else:
+                status += "\n" + timestamp() + "-> Hostname Default"
+                time.sleep(0.77)
+
+            #SSL
+            driver.find_element(By.NAME, "proxy-ca").send_keys(CERT)
+            status += "\n" + timestamp() + "-> SSL cert ok "
+            time.sleep(0.77)
+
+            #apt-get proxy
+            driver.find_element(By.NAME, "use-apt-proxy").click()
+            time.sleep(0.77)
+            driver.find_element(By.NAME, "apt-proxy-host").send_keys(proxy)
+            time.sleep(0.77)
+            driver.find_element(By.NAME, "apt-proxy-port").send_keys(proxy_port)
+            time.sleep(0.77)
+
+            # Done Network
+            driver.find_element(By.ID, "submit-form").submit()
+            time.sleep(3.77)
+            status += "\n" + timestamp() + "-> Network Setup Complete "
+            time.sleep(3.77)
+
+            #Status
+            try:
+                status += "\n" + get_status(host_ip, hostname)
+                dump_logs(d_logs=status)
+            except TimeoutException as ex:
+                pass
+                dump_logs(d_logs=ex)
+
+        else:
+
+            status += "\n" + timestamp() + "-> Network Setup Fail "
+
+        return status
+
+    except(TimeoutException, NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException) as ex:
+
+        status += "\n" + timestamp() + "-> Network Setup Fail"
+        dump_logs(d_logs=ex)
+
+        return False
+
+
+start_time = time.perf_counter()
+
+for ea in data_sheet.iter_rows(min_col=1, max_col=8, min_row=2):
+
+    log_output = ''
+    bar.next()
+
+    first_part = initial_setup(host_ip=ea[0].value, new_password=ea[1].value, accgroup_token=ea[2].value)
+    time.sleep(1.7)
+
+    if "Enterprise Agent Reachable" in first_part:
+
+        log_output += str(first_part)
+
+        second_part = network_setup(host_ip=ea[0].value, new_password=ea[1].value, hostname=ea[3].value, ntp=ea[4].value, proxy=ea[5].value, proxy_port=ea[6].value)
+
+        if second_part:
+
+            log_output += str(second_part)
+
+        else:
+
+            log_output += str(second_part)
+
+    else:
+
+        log_output += first_part
+        data_sheet.cell(row=ea[0].row, column=1).font = Font(color="00FF0000")
+
+    data_sheet.cell(row=ea[0].row, column=9, value=None)
+    data_sheet.cell(row=ea[0].row, column=9, value=log_output).alignment = Alignment(shrink_to_fit=False, wrapText=True, horizontal='general')
+    data_sheet.cell(row=ea[0].row, column=9).font = Font(color="00008B")
+     # Green color="00339966"  + Red color="00FF0000" position -> ea[6].row
+    config_file.save('config.xlsx')
+    print(" Elapsed Time ", time.perf_counter() - start_time)
+
+    if ea[0].value is None:
+        break
+
+driver.quit()
+config_file.save('config.xlsx')
+bar.finish()
+print(" Total Elapsed Time ", time.perf_counter() - start_time)
