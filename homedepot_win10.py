@@ -236,7 +236,7 @@ def network_setup(host_ip, hostname, new_password, ntp, proxy, proxy_port):
                 time.sleep(0.77)
                 driver.find_element(By.ID, "hostname").send_keys(hostname)
                 time.sleep(0.77)
-                driver.save_screenshot("image1.png")
+                
                 status += "\n" + timestamp() + "-> Hostname Changed "
 
             else:
