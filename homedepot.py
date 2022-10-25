@@ -32,7 +32,7 @@ CERT += "-----END CERTIFICATE-----"
 # Date & Time
 def timestamp():
     date_time_now = datetime.now()
-  
+    #dt_string = date_time_now.strftime("%m/%d/%H:%M:%S")
     return date_time_now.strftime("%m/%d/%H:%M:%S")
 
 def dump_logs(d_logs):
@@ -44,16 +44,35 @@ def dump_logs(d_logs):
 
 # Selenium
 options = Options()
-options.add_argument('--headless')
+#options.add_argument('--headless')
 driver = webdriver.Firefox(options=options) #executable_path="C:\\Users\\Helmut\\Desktop\\geckodriver.exe",
+#wait = WebDriverWait(driver, 7)
 action = ActionChains(driver)
 
 # Openpyxl
 config_file = openpyxl.load_workbook('config.xlsx')
 data_sheet = config_file["Config"]
+#logs_tab = "Logs("+ dt_string +")"
+#logs_sheet = config_file.create_sheet(logs_tab)
+#logs_sheet = config_file[logs_tab]
 
 # Progress Bar
 bar = Bar('Configuring ', max=(data_sheet.max_row - 1))
+
+def static_proxy_not_used(proxy, proxy_port, proxy_list):
+    # Proxy
+    driver.find_element(By.ID, "proxy-type-label-static").click()
+    time.sleep(0.77)
+    driver.find_element(By.NAME, "proxy-host").send_keys(proxy)
+    time.sleep(0.77)
+    driver.find_element(By.NAME, "proxy-port").send_keys(proxy_port)
+    time.sleep(0.77)
+    driver.save_screenshot("image2.png")
+    driver.find_element(By.ID, "bypass-list-input").send_keys(proxy_list)
+    time.sleep(0.77)
+    driver.find_element(By.CLASS_NAME, "input-group-append").click()
+    time.sleep(0.77)
+    #status += "\n" + timestamp() + "-> Proxy Setup Complete "
 
 def login(host_ip, password):
 
@@ -69,7 +88,7 @@ def login(host_ip, password):
         driver.find_element(By.NAME, "password").send_keys(password)
         time.sleep(0.77)
         driver.find_element(By.CSS_SELECTOR, '.btn-outline-default').submit()
-        time.sleep(2.77)
+        time.sleep(1.77)
 
         return True
 
@@ -89,6 +108,35 @@ def login(host_ip, password):
         return True
 
 
+def get_status(host_ip, hostname):
+
+    portal = ('https://' + host_ip + '/status')
+    portal = portal.strip(' ')
+    hostname = hostname + '.png'
+    driver.switch_to.new_window('tab')
+    tabs = driver.window_handles
+    time.sleep(0.77)
+    driver.switch_to.window(tabs[0])
+    time.sleep(0.77)
+    driver.close()
+    time.sleep(0.77)
+    driver.switch_to.window(tabs[1])
+    driver.get(portal)
+    time.sleep(1.77)
+    driver.execute_script("window.scrollTo(0, 277)")
+    time.sleep(1.77)
+
+    final_status = ''
+    for i in driver.find_elements(By.CLASS_NAME, "diagnostics-message"):
+        final_status += "\n" + i.text
+
+    driver.save_screenshot(hostname)
+
+    return final_status
+
+
+
+
 def initial_setup(host_ip, new_password, accgroup_token):
 
     status = ''
@@ -106,6 +154,8 @@ def initial_setup(host_ip, new_password, accgroup_token):
             time.sleep(0.77)
             driver.find_element(By.NAME, "confirmPassword").send_keys(new_password)
             time.sleep(3.33)
+            #change_password = WebDriverWait(driver, 17).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.btn:nth-child(5)")))
+            #change_password.click()
             driver.find_element(By.CSS_SELECTOR, "button.btn:nth-child(5)").submit()
             time.sleep(1.77)
 
@@ -113,7 +163,7 @@ def initial_setup(host_ip, new_password, accgroup_token):
 
         except(NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException) as ex:
             pass
-           
+            #print(ex)
             dump_logs(d_logs=ex)
 
             status += "\n" + timestamp() + "-> Could not Change Original Password"
@@ -121,16 +171,15 @@ def initial_setup(host_ip, new_password, accgroup_token):
         try:
             time.sleep(2.22)
             driver.find_element(By.NAME, "accountToken").send_keys(accgroup_token)
-            time.sleep(2.22)
+            time.sleep(1.77)
             next_button = WebDriverWait(driver, 7).until(EC.element_to_be_clickable((By.ID, "setupButtonNext")))
-            time.sleep(2.22)
+            time.sleep(0.77)
             next_button.click()
             status += "\n" + timestamp() + "-> Account Group Token Changed Successfully "
             time.sleep(1.77)##setupButtonNext
 
         except(NoSuchElementException, ElementNotInteractableException, ElementClickInterceptedException) as ex:
             pass
-            #print(ex)
             dump_logs(d_logs=ex)
 
         return status
@@ -142,7 +191,7 @@ def initial_setup(host_ip, new_password, accgroup_token):
         return status
 
 
-def network_setup(host_ip, hostname, new_password, ntp, proxy, proxy_port, proxy_list):
+def network_setup(host_ip, hostname, new_password, ntp, proxy, proxy_port):
 
     status = ''
 
@@ -176,6 +225,7 @@ def network_setup(host_ip, hostname, new_password, ntp, proxy, proxy_port, proxy
             time.sleep(0.77)
             driver.find_element(By.ID, "submit-form").submit()
             time.sleep(0.77)
+
             #Hostname
             time.sleep(1.77)
             driver.find_element(By.LINK_TEXT, "Network").click()
@@ -186,33 +236,39 @@ def network_setup(host_ip, hostname, new_password, ntp, proxy, proxy_port, proxy
                 time.sleep(0.77)
                 driver.find_element(By.ID, "hostname").send_keys(hostname)
                 time.sleep(0.77)
+                driver.save_screenshot("image1.png")
                 status += "\n" + timestamp() + "-> Hostname Changed "
 
             else:
                 status += "\n" + timestamp() + "-> Hostname Default"
                 time.sleep(0.77)
 
-            # Proxy
-            driver.find_element(By.ID, "proxy-type-label-static").click()
-            time.sleep(0.77)
-            driver.find_element(By.NAME, "proxy-host").send_keys(proxy)
-            time.sleep(0.77)
-            driver.find_element(By.NAME, "proxy-port").send_keys(proxy_port)
-            time.sleep(0.77)
-            driver.find_element(By.ID, "bypass-list-input").send_keys(proxy_list)
-            time.sleep(0.77)
-            driver.find_element(By.CLASS_NAME, "input-group-append").click()
-            time.sleep(0.77)
-            status += "\n" + timestamp() + "-> Proxy Setup Complete "
             #SSL
             driver.find_element(By.NAME, "proxy-ca").send_keys(CERT)
             status += "\n" + timestamp() + "-> SSL cert ok "
             time.sleep(0.77)
+
+            #apt-get proxy
+            driver.find_element(By.NAME, "use-apt-proxy").click()
+            time.sleep(0.77)
+            driver.find_element(By.NAME, "apt-proxy-host").send_keys(proxy)
+            time.sleep(0.77)
+            driver.find_element(By.NAME, "apt-proxy-port").send_keys(proxy_port)
+            time.sleep(0.77)
+
             # Done Network
             driver.find_element(By.ID, "submit-form").submit()
             time.sleep(3.77)
             status += "\n" + timestamp() + "-> Network Setup Complete "
             time.sleep(3.77)
+
+            #Status
+            try:
+                status += "\n" + get_status(host_ip, hostname)
+                dump_logs(d_logs=status)
+            except TimeoutException as ex:
+                pass
+                dump_logs(d_logs=ex)
 
         else:
 
@@ -242,7 +298,7 @@ for ea in data_sheet.iter_rows(min_col=1, max_col=8, min_row=2):
 
         log_output += str(first_part)
 
-        second_part = network_setup(host_ip=ea[0].value, new_password=ea[1].value, hostname=ea[3].value, ntp=ea[4].value, proxy=ea[5].value, proxy_port=ea[6].value, proxy_list="google.com;cisco.com;thousandeyes.com")
+        second_part = network_setup(host_ip=ea[0].value, new_password=ea[1].value, hostname=ea[3].value, ntp=ea[4].value, proxy=ea[5].value, proxy_port=ea[6].value)
 
         if second_part:
 
